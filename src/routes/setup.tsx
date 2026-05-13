@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Loader2, LogOut, ShieldCheck, Sparkles } from "lucide-react";
+import { Loader2, LogOut, ShieldCheck, Sparkles, UserCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
+import { PERMISSION_LABEL, type PermissionLevel } from "@/lib/constants";
 
 type SetupState = {
   isAuthenticated: boolean;
@@ -23,12 +25,18 @@ export function SetupPage({ state }: { state: SetupState }) {
   const createWorkspace = useMutation(api.workspace.create);
   const claimManager = useMutation(api.members.claimManager);
   const createSelf = useMutation(api.members.createSelfMember);
+  const claimExisting = useMutation(api.members.claimExistingMember);
+  const unclaimed = useQuery(api.members.listUnclaimed) ?? [];
   const { signOut } = useAuthActions();
 
   const [name, setName] = useState("");
   const [workspaceName, setWorkspaceName] = useState("1466 Robotics");
   const [username, setUsername] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // "new" = create a fresh profile, "existing" = claim a pre-made one
+  const [joinMode, setJoinMode] = useState<"new" | "existing">("new");
+  const [selectedMemberId, setSelectedMemberId] = useState<Id<"members"> | null>(null);
 
   const step: "workspace" | "claim" | "join" = !state.hasWorkspace
     ? "workspace"
@@ -66,7 +74,7 @@ export function SetupPage({ state }: { state: SetupState }) {
     }
   }
 
-  async function onJoin(e: React.FormEvent) {
+  async function onJoinNew(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !username.trim()) return;
     setSubmitting(true);
@@ -75,6 +83,21 @@ export function SetupPage({ state }: { state: SetupState }) {
       toast.success("Welcome! Your account is pending review.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to join.");
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function onClaimExisting(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedMemberId) return;
+    setSubmitting(true);
+    try {
+      await claimExisting({ memberId: selectedMemberId });
+      toast.success("Profile linked! Welcome.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to claim profile.");
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -124,8 +147,8 @@ export function SetupPage({ state }: { state: SetupState }) {
               </form>
             )}
 
-            {(step === "claim" || step === "join") && (
-              <form onSubmit={step === "claim" ? onClaim : onJoin} className="space-y-4">
+            {step === "claim" && (
+              <form onSubmit={onClaim} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="full-name">Full name</Label>
                   <Input
@@ -148,9 +171,105 @@ export function SetupPage({ state }: { state: SetupState }) {
                 </div>
                 <Button type="submit" className="w-full" disabled={submitting}>
                   {submitting ? <Loader2 className="size-4 mr-2 animate-spin" /> : null}
-                  {step === "claim" ? "Claim manager role" : "Join team"}
+                  Claim manager role
                 </Button>
               </form>
+            )}
+
+            {step === "join" && (
+              <div className="space-y-4">
+                {/* Mode toggle — only show "I'm already listed" if there are unclaimed profiles */}
+                {unclaimed.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={joinMode === "existing" ? "default" : "outline"}
+                      className="w-full"
+                      onClick={() => setJoinMode("existing")}
+                    >
+                      <UserCheck className="size-4 mr-2" /> I'm already listed
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={joinMode === "new" ? "default" : "outline"}
+                      className="w-full"
+                      onClick={() => setJoinMode("new")}
+                    >
+                      <UserPlus className="size-4 mr-2" /> Create new profile
+                    </Button>
+                  </div>
+                )}
+
+                {/* Claim an existing unclaimed profile */}
+                {joinMode === "existing" && unclaimed.length > 0 && (
+                  <form onSubmit={onClaimExisting} className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Select the profile that was created for you. Only profiles
+                      that haven't been claimed yet are shown.
+                    </p>
+                    <div className="space-y-2">
+                      {unclaimed.map((m) => (
+                        <button
+                          key={m._id}
+                          type="button"
+                          onClick={() => setSelectedMemberId(m._id)}
+                          className={`w-full flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors hover:bg-accent ${
+                            selectedMemberId === m._id
+                              ? "border-primary bg-primary/5"
+                              : "border-border"
+                          }`}
+                        >
+                          <div>
+                            <div className="text-sm font-medium">{m.name}</div>
+                            <div className="text-xs text-muted-foreground">@{m.username}</div>
+                          </div>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {PERMISSION_LABEL[m.permission as PermissionLevel]}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={submitting || !selectedMemberId}
+                    >
+                      {submitting ? <Loader2 className="size-4 mr-2 animate-spin" /> : null}
+                      This is me
+                    </Button>
+                  </form>
+                )}
+
+                {/* Create a brand new profile */}
+                {joinMode === "new" && (
+                  <form onSubmit={onJoinNew} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="full-name">Full name</Label>
+                      <Input
+                        id="full-name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        placeholder="Jane Doe"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value.replace(/\s+/g, ""))}
+                        required
+                        placeholder="janedoe"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={submitting}>
+                      {submitting ? <Loader2 className="size-4 mr-2 animate-spin" /> : null}
+                      Join team
+                    </Button>
+                  </form>
+                )}
+              </div>
             )}
 
             <Button

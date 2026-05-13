@@ -277,7 +277,9 @@ export function PersonDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] pr-4">
-            <MemberForm member={member} meIsManager={meIsManager} onDone={closeDialog} />
+            <div className="overflow-hidden">
+              <MemberForm member={member} meIsManager={meIsManager} onDone={closeDialog} />
+            </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>

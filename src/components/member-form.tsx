@@ -163,31 +163,33 @@ export function MemberForm({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 min-w-0">
           <Label htmlFor="name">Name</Label>
-          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required className="w-full" />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 min-w-0">
           <Label htmlFor="username">Username</Label>
           <Input
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value.replace(/\s+/g, ""))}
             required
+            className="w-full"
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 min-w-0">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full"
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 min-w-0">
           <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full" />
         </div>
       </div>
 
@@ -350,6 +352,7 @@ export function MemberForm({
           value={expertiseInput}
           onChange={(e) => setExpertiseInput(e.target.value)}
           placeholder="welding, CNC, scouting"
+          className="w-full"
         />
       </div>
 
@@ -361,6 +364,7 @@ export function MemberForm({
           onChange={(e) => setBio(e.target.value)}
           rows={3}
           placeholder="Internal notes about this person."
+          className="w-full resize-none"
         />
       </div>
 

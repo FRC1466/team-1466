@@ -333,9 +333,29 @@ export const adminCreate = mutation({
 export const lookupByEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
+    const normalised = email.toLowerCase().trim();
+
+    // Primary path: look up directly by the email stored on the member profile.
+    // This works whether or not the person has ever signed into team-1466.
+    const byProfileEmail = await ctx.db
+      .query("members")
+      .collect()
+      .then((all) => all.find((m) => m.email?.toLowerCase().trim() === normalised));
+
+    if (byProfileEmail) {
+      return {
+        permission: byProfileEmail.permission,
+        name: byProfileEmail.name,
+        status: byProfileEmail.status,
+        loginAccess: byProfileEmail.loginAccess,
+      };
+    }
+
+    // Fallback: check if the email belongs to a team-1466 auth account that is
+    // linked to a member (covers accounts created before the email field existed).
     const authUser = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("email"), email))
+      .filter((q) => q.eq(q.field("email"), normalised))
       .first();
     if (!authUser) return null;
 
@@ -351,5 +371,59 @@ export const lookupByEmail = internalQuery({
       status: member.status,
       loginAccess: member.loginAccess,
     };
+  },
+});
+
+/**
+ * Returns all member profiles that were pre-created by an admin but have
+ * never been linked to an auth account (userId is undefined).
+ * Used on the setup/join page so a new user can claim their pre-made profile.
+ */
+export const listUnclaimed = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await currentUserId(ctx);
+    if (!userId) return [];
+    const all = await ctx.db.query("members").collect();
+    return all
+      .filter((m) => m.userId === undefined)
+      .map((m) => ({ _id: m._id, name: m.name, username: m.username, permission: m.permission }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
+});
+
+/**
+ * Links the currently signed-in user to an existing unclaimed member profile.
+ * Only works if the target member has no userId yet.
+ */
+export const claimExistingMember = mutation({
+  args: { memberId: v.id("members") },
+  handler: async (ctx, args) => {
+    const userId = await currentUserId(ctx);
+    if (!userId) throw new Error("Sign in first.");
+
+    // Make sure the caller doesn't already have a profile.
+    const alreadyLinked = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (alreadyLinked) throw new Error("You already have a member profile.");
+
+    const target = await ctx.db.get(args.memberId);
+    if (!target) throw new Error("Member not found.");
+    if (target.userId !== undefined) throw new Error("This profile has already been claimed.");
+
+    await ctx.db.patch(args.memberId, {
+      userId,
+      loginAccess: "enabled",
+      lastUpdatedAt: Date.now(),
+    });
+
+    await logActivity(ctx, {
+      actorId: args.memberId,
+      targetMemberId: args.memberId,
+      kind: "member_updated",
+      summary: `${target.name} claimed their pre-made profile`,
+    });
   },
 });
