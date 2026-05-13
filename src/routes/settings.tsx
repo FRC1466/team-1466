@@ -117,7 +117,9 @@ export function SettingsPage() {
             <Label>Theme</Label>
             <Select value={theme ?? "system"} onValueChange={(v) => v && setTheme(v)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>
+                  {{ system: "System", light: "Light", dark: "Dark" }[theme ?? "system"]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="system">System</SelectItem>

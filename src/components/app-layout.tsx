@@ -158,7 +158,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-svh flex flex-col bg-background">
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-[env(safe-area-inset-top)]">
         <div className="mx-auto max-w-7xl flex items-center gap-2 px-4 h-14">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
@@ -181,7 +181,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <Link to="/" className="font-semibold tracking-tight text-base whitespace-nowrap">
             {workspace?.name ?? "Team"}
           </Link>
-          <span className="text-muted-foreground text-sm lg:hidden ml-2">/ {currentLabel}</span>
+          <span className="text-muted-foreground text-sm lg:hidden ml-2 whitespace-nowrap">/ {currentLabel}</span>
 
           <div className="flex-1" />
 
