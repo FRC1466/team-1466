@@ -59,6 +59,7 @@ http.route({
         permission: result.permission,
         name: result.name,
         status: result.status,
+        loginAccess: result.loginAccess,
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );

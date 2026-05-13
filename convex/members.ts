@@ -349,6 +349,7 @@ export const lookupByEmail = internalQuery({
       permission: member.permission,
       name: member.name,
       status: member.status,
+      loginAccess: member.loginAccess,
     };
   },
 });

@@ -14,6 +14,7 @@ import { AnalyticsPage } from "@/routes/analytics";
 import { AccessPage } from "@/routes/access";
 import { SettingsPage } from "@/routes/settings";
 import { NotesPage } from "@/routes/notes";
+import { AppsPage } from "@/routes/apps";
 
 function FullPageSpinner({ label = "Loading..." }: { label?: string }) {
   return (
@@ -45,6 +46,7 @@ function GuardedShell() {
         <Route path="/access" element={<AccessPage />} />
         <Route path="/notes" element={<NotesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/apps" element={<AppsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

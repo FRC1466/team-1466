@@ -124,11 +124,15 @@ export function PersonDetailPage() {
             <div className="flex flex-wrap gap-2 mt-2">
               <PermissionBadge level={member.permission} />
               <StatusBadge status={member.status} />
-              {member.isMentor && (
+              {member.isMentor && member.permission !== "manager" && (
                 <Badge variant="outline">Mentor</Badge>
               )}
-              {member.isTeamLead && <Badge variant="outline">Team Lead</Badge>}
-              {member.isSubteamLead && <Badge variant="outline">Subteam Lead</Badge>}
+              {member.isTeamLead && member.permission !== "manager" && member.permission !== "team_lead" && (
+                <Badge variant="outline">Team Lead</Badge>
+              )}
+              {member.isSubteamLead && member.permission !== "subteam_lead" && (
+                <Badge variant="outline">Subteam Lead</Badge>
+              )}
               {member.isSME && <Badge variant="outline">SME</Badge>}
             </div>
           </div>
@@ -202,7 +206,7 @@ export function PersonDetailPage() {
               ) : null,
             )}
             {member.expertiseTags.map((t) => (
-              <Badge key={t} variant="outline" className="text-xs">
+              <Badge key={t} variant="outline" className="text-xs capitalize">
                 {t}
               </Badge>
             ))}
