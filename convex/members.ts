@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   currentMember,
@@ -318,5 +318,37 @@ export const adminCreate = mutation({
     });
 
     return id;
+  },
+});
+
+// ---------------------------------------------------------------------------
+// WebbPower integration — internal query
+// ---------------------------------------------------------------------------
+
+/**
+ * Internal query used by the HTTP member-lookup endpoint.
+ * Returns a member's permission level and status for a given email address,
+ * or null if no matching auth user / member is found.
+ */
+export const lookupByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const authUser = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), email))
+      .first();
+    if (!authUser) return null;
+
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("userId", authUser._id))
+      .first();
+    if (!member) return null;
+
+    return {
+      permission: member.permission,
+      name: member.name,
+      status: member.status,
+    };
   },
 });

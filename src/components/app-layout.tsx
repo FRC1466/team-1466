@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { useTheme } from "next-themes";
 import {
   BarChart3,
+  ExternalLink,
   Home,
   KeyRound,
   LogOut,
@@ -17,6 +18,7 @@ import {
   Sun,
   Users,
   UsersRound,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -37,6 +39,12 @@ const navItems = [
   { to: "/access", label: "Access", icon: KeyRound },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
+
+// WebbPower URL — set VITE_WEBBPOWER_URL in the Vercel/env config.
+// Falls back to the FRC1466 Vercel deployment if not configured.
+const WEBBPOWER_URL =
+  (import.meta as unknown as { env: Record<string, string> }).env
+    .VITE_WEBBPOWER_URL ?? "https://webbpower.vercel.app";
 
 function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -74,6 +82,21 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
           {item.label}
         </NavLink>
       ))}
+      {/* External link to WebbPower robot power dashboard */}
+      <a
+        href={WEBBPOWER_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onNavigate}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition",
+          "hover:bg-accent hover:text-accent-foreground text-muted-foreground",
+        )}
+      >
+        <Zap className="size-4" />
+        WebbPower
+        <ExternalLink className="size-3 ml-auto opacity-50" />
+      </a>
     </nav>
   );
 }
@@ -98,6 +121,19 @@ function TopNavInline() {
           {item.label}
         </NavLink>
       ))}
+      <a
+        href={WEBBPOWER_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition",
+          "hover:bg-accent hover:text-accent-foreground text-muted-foreground",
+        )}
+      >
+        <Zap className="size-4" />
+        WebbPower
+        <ExternalLink className="size-3 opacity-50" />
+      </a>
     </nav>
   );
 }
